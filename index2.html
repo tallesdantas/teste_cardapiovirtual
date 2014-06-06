@@ -1,0 +1,1129 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;"  />
+
+<title>IT Restaurante</title>
+
+<script type="text/javascript"   src="jquery.min.js" ></script>
+
+ <link href="jquery.mobile-1.3.1.min.css" rel="stylesheet" />
+ <script type="text/javascript" src="jquery.mobile-1.3.1.min.js" ></script>
+
+ <script type="text/javascript"  src="jquery.md5.js" ></script>
+ <script type="text/javascript"  src="kael.js" ></script>
+ 
+
+	<link href= "2.1.3/photoswipe.css"  rel="stylesheet"/>
+	<script type="text/javascript" src="2.1.3/lib/klass.min.js"> </script>
+    <script type="text/javascript" src="2.1.3/code.photoswipe.jquery-2.1.3.min.js" ></script>
+	<script type="text/javascript"  src="cordova-2.3.0.js"></script>
+    <script type="text/javascript"  charset="utf-8" src="SpeechRecognizer.js"></script>
+
+	
+	<script type="text/javascript" charset="utf-8" src="ZipPlugin.js"></script>
+	        
+
+	<link rel="stylesheet" type="text/css" href="tolito-1.0.5.min.css" />
+	<script type="text/javascript" src="tolito-1.0.5.min.js"></script>
+
+
+	<script type="text/javascript" src="jquery.mobile.simpledialog2.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="jquery.mobile.simpledialog.min.css" /> 
+
+
+<script type="text/javascript" charset="utf-8">
+	//$.mobile.page.prototype.options.addBackBtn = true;
+	$.mobile.page.prototype.options.backBtnText = "Voltar";
+	$.mobile.page.prototype.options.backBtnTheme = "d";
+// Wait for Cordova to load    
+//$.mobile.showPageLoadingMsg();
+    
+   // document.addEventListener("deviceready", onDeviceReady, false);
+	
+   	
+	/////////// configs ///////////////
+	localStorage['sys_nomeapp'] = 'Cardapio móvel';
+	localStorage['sys_ipservidor'] = '';
+	localStorage['sys_nomeappweb'] = 'cardapiovirtualnovo';
+	localStorage['sys_pastaimagens'] = 'itrestaurante';
+	localStorage['bd_nomebd'] = 'Cardapiomovel';
+	///////////////////////////////////
+	
+	document.addEventListener("deviceready", onDeviceReady, false);
+	
+	 function removeAcento(strToReplace) {
+    		str_acento= "áàãâäéèêëíìîïóòõôöúùûüçÁÀÃÂÄÉÈÊËÍÌÎÏÓÒÕÖÔÚÙÛÜÇ";
+    		str_sem_acento = "aaaaaeeeeiiiiooooouuuucAAAAAEEEEIIIIOOOOOUUUUC";
+    		var nova="";
+    	for (var i = 0; i < strToReplace.length; i++){
+    	if (str_acento.indexOf(strToReplace.charAt(i)) != -1) {
+    		nova+=str_sem_acento.substr(str_acento.search(strToReplace.substr(i,1)),1);
+	    	}else{
+	    		nova+=strToReplace.substr(i,1);
+	    	}
+    	}
+    	return nova;
+    }
+	
+	
+	function onDeviceReady(){
+		//alert('x');
+		//$.mobile.changePage("#progressdialog", { role: "dialog" } );
+
+		
+		cdb('SETTINGS','"1"','"1"',function(array_retorno){
+			
+			editarit('ipsrvrx',array_retorno[0].ipserver,null);
+				
+			cdb('produtos','"1"','"1"',function(array_retorno2){
+						localStorage['produtos'] = JSON.stringify(array_retorno2);
+			});	
+			
+			cdb('categorias','"1"','"1"',function(array_retorno){
+						localStorage['categorias'] = JSON.stringify(array_retorno);
+			});
+			
+			cdb('clientes','"TIPOATENDIMENTO"','"M"',function(array_retorno){
+						localStorage['mesas'] = JSON.stringify(array_retorno);
+			});
+			
+			cdb('clientes','"TIPOATENDIMENTO"','"C"',function(array_retorno){
+						localStorage['comandas'] = JSON.stringify(array_retorno);
+			});
+			
+			cdb('senhas','"NIVEL"','"GAR"',function(array_retorno){
+						localStorage['senhas'] = JSON.stringify(array_retorno);
+			});	
+		
+		});	
+	  
+	  $('#select_garcom').empty().append("<option value=''>Garçons</option>");
+			
+			var senhas = JSON.parse(localStorage['senhas']);
+			$.each(senhas, function(i, senha) {
+				$('#select_garcom').append('<option value="'+senha.COD+'"> '+senha.NOME+' </option>');
+			});
+	  
+			
+			
+	  $('#home2').live('pageshow',function(event, ui){
+
+			$('#select_garcom').empty().append("<option value=''>Garçons</option>");
+			var senhas = JSON.parse(localStorage['senhas']);
+			$.each(senhas, function(i, senha) {
+				$('#select_garcom').append('<option value="'+senha.COD+'"> '+senha.NOME+' </option>');
+			});
+
+	  });
+	
+	  $('#home').live('pageshow',function(event, ui){
+		
+			$('#logo_empresa').attr('src','file:///mnt/sdcard/'+localStorage['sys_pastaimagens']+'/logo.jpg')
+		
+	  });
+	
+	
+	  $('#lista_de_pedidos').live('pageshow',function(event, ui){
+			
+			$('#pedido_rapido_conteudo').empty();
+
+			var produtos = JSON.parse(localStorage['produtos']);
+			var categorias = JSON.parse(localStorage['categorias']);
+
+		    texto = '';
+			for (var i in categorias){
+					var nome = categorias[i].NOME+"";
+					
+					nome = removeAcento(nome);
+					
+					texto += ('<li><a href="#"><img src="file:///mnt/sdcard/'+localStorage['sys_pastaimagens']+'/'+nome.replace("/", "-").replace(" ","").replace(".", "").replace("+", ":").replace(/ /g,'')+'.png" ><h3>'+nome+'</h3></a><ul>');
+				
+				for (var ii in produtos){
+					
+						if(produtos[ii].CATEGORIA == categorias[i].COD && produtos[ii].COD != 1 && produtos[ii].NOME != "null" )
+						{
+							var nomeproduto = produtos[ii].NOME;
+							nomeproduto = removeAcento(nomeproduto);
+							texto += ('<li onclick="opcoes_add_produto('+produtos[ii].COD+')"><a href="#"><img src="file:///mnt/sdcard/'+localStorage['sys_pastaimagens']+'/'+nomeproduto.replace("/", "-").replace(" ","").replace(".", "").replace("+", ":").replace(/ /g,'')+'.png" ><h3>'+produtos[ii].COD+' - '+nomeproduto.replace("/", "-").replace(".", "").replace("+", ":")+'</h3></a></li>');
+						}
+						if(parseInt(ii) == parseInt(produtos.length -1)){
+							texto += ('</ul></li>');	
+						}
+
+						if(parseInt(i) == parseInt(categorias.length -1)  && parseInt(ii) == parseInt(produtos.length -1) )
+						{
+						//	alert('end');
+							$('#pedido_rapido_conteudo').append(texto);
+							$('#pedido_rapido_conteudo').listview('refresh');
+						}
+						
+				}
+				//alert('x');
+				if(i == categorias.length  && ii == produtos.length){
+							//alert('end');
+							//$('#pedido_rapido_conteudo').listview('refresh');
+				}
+			}
+			//console.log(texto);
+	
+			
+		});
+			
+	  }
+	  
+	  
+	  $('#lista_de_pedidos_add').live('pageshow', function(event) {
+			var texto = '';	
+			$('#conteudo_lista_pedidos_pai').empty();
+			//JSON.parse(localStorage['Produtos'])[5]['id'] + 1 );
+			if( !(localStorage.getItem("Produtoscarrinho") === null  ||  localStorage.getItem("Produtoscarrinho") == "") ){
+				//$.mobile.showPageLoadingMsg();
+				$('#conteudo_lista_pedidos_pai').empty();
+				//alert('x');
+				dt = JSON.parse(localStorage['Produtoscarrinho']);
+				
+				//alert('xx');
+				//alert(dt);
+				
+					$.each(dt, function(i, item) {
+						//alert(i);
+						//alert(item.id);
+						texto += '<li data-role="list-divider"></li><br>';
+						texto += '<li> ';
+						texto += ' <input  type="hidden"  name="" id="Produtos_id_'+item.id+'__"  />';
+						texto += ' <input  type="hidden"  name="Produtos['+i+'][id]" value="'+item.id+'" />';
+						texto += ' <input type="hidden" name="Produtos['+i+'][nome]" value="'+item.nome+'"  />Nome: '+item.nome+'<br>';
+						texto += ' <input type="hidden" name="Produtos['+i+'][preco]" value="'+item.preco+'"  />Pre�o: '+item.preco+'<br>';
+						texto += ' <input type="hidden" name="Produtos['+i+'][complementos]" value="'+item.complementos_id+'"  />Complementos: '+item.complementos+' <br>';
+						texto += ' <input type="hidden" name="Produtos['+i+'][complementos_preco]" value="'+item.complementos_preco+'"  />';
+						texto += ' <input type="hidden" name="Produtos['+i+'][quantidade]" id="Produtos_qtd_'+i+'" value="'+item.qtd+'"  />Quantidade: <input data-theme="c" data-inline="true" data-mini="true" type="button" name="increase" value="+" onclick=alterarQtd("Produtos_qtd_'+i+'","adic"); /><label id="Produtos_qtd_'+i+'_cnt" >'+item.qtd+'</label><input data-inline="true" data-theme="c" type="button" data-mini="true" name="decrease" value="-" onclick=alterarQtd("Produtos_qtd_'+i+'","sub"); /> <br>';
+						//texto += ' <br><br> <div align="center">Comanda</div><br><select name="Produtos['+i+'][comanda]"  data-theme="c" data-native-menu="false" >'+localStorage['opcoes_comanda']+'</select>';
+						texto += ' <br><br><br><input data-theme="c" data-inline="true" data-mini="true"  type="button" value="X Remover" onclick="removerElementoLista($(this),'+item.id+')"> </li><br>';
+						//console.log(dt.length+' -- '+i);
+						if( (parseInt(i)+1) == dt.length)
+						{
+							//alert('touchet');
+							$('#conteudo_lista_pedidos_pai').empty().append('<ul data-theme="c" data-role="listview" >'+texto+'</ul>');
+							$('#conteudo_lista_pedidos_pai').trigger('create');
+							//$('#conteudo_lista_pedidos_pai').listview('refresh');
+						}
+						
+					});
+				
+				
+			    $('input[type=radio]').live('change', function() { 
+					//alert('wtf'); 
+					if($('input[type=radio]:checked').val() == 'mesa')
+					{
+						$('#conteudo_pagamento').empty().append('<h3>Selecione a mesa</h3>');
+							
+						var conteudo = '<div data-role="fieldcontain"><label for="select-mesas">Selecione a mesa:</label><select name="select-mesas" id="select-mesas">';
+						var mesas = JSON.parse(localStorage['mesas']);
+						$.each(mesas, function(i, item) {
+							conteudo += '<option value="'+item.COD+'">'+item.NOME+' - '+item.NUMERO+'</option>';
+						});
+						conteudo+='</select></div>';
+						
+						$('#conteudo_pagamento').append('<br>'+conteudo+'<br><input type="button"  value="Fazer Pedidos" data-theme="b" onclick="submeter_varios_pedidos()"  />').trigger('create');
+						
+					}
+					if($('input[type=radio]:checked').val() == 'comanda')
+					{
+						$('#conteudo_pagamento').empty().append('<h3>Selecione a comanda</h3>');
+					
+						var conteudo = '<div data-role="fieldcontain"><label for="select-comendas">Selecione a comanda:</label><select name="select-comanda" id="select-comanda">';         
+						var mesas = JSON.parse(localStorage['comandas']);
+						$.each(mesas, function(i, item) {
+							conteudo += '<option value="'+item.COD+'">'+item.NOME+'</option>';																	
+						});
+						conteudo+='</select></div>';
+						
+						$('#conteudo_pagamento').append('<br>'+conteudo+'<br><input type="button"  value="Fazer Pedidos" data-theme="b" onclick="submeter_varios_pedidos()"  />').trigger('create');
+
+					}
+				
+				});
+
+				
+				
+								
+			}else{
+				alert('N�o h� produtos no carrinho!');
+				history.back();
+			}
+	   
+	   
+	  });
+	 
+	  	
+	  
+	  
+    
+    
+		function baixar_tudo(){
+				//alert('x');
+				if ($('#ipsrvrx').length > 0) {
+					localStorage['sys_ipservidor'] = 'http://'+$('#ipsrvrx').val();
+				}else{
+				//	alert('IP do servidor nao estabelecido');
+				}
+
+				
+				if(localStorage['sys_ipservidor'] != ""){
+						
+					if(confirm(" Deseja Importar tabelas ? ")){
+					alert('baixando tabelas');
+					importar_tabela_dohost('categorias','http://'+(localStorage['sys_ipservidor']).replace("http://", "")+'/cardapiovirtualnovo/index.php?tabela=categprod');
+					importar_tabela_dohost('produtos','http://'+(localStorage['sys_ipservidor']).replace("http://", "")+'/cardapiovirtualnovo/index.php?tabela=produtos');
+					importar_tabela_dohost('tipospagamento','http://'+(localStorage['sys_ipservidor']).replace("http://", "")+'/cardapiovirtualnovo/index.php?tabela=tipospagamento');
+					importar_tabela_dohost('produtoscomplementos','http://'+(localStorage['sys_ipservidor']).replace("http://", "")+'/cardapiovirtualnovo/index.php?tabela=detprodutos');
+					importar_tabela_dohost('clientes','http://'+(localStorage['sys_ipservidor']).replace("http://", "")+'/cardapiovirtualnovo/index.php?tabela=clientes');
+					importar_tabela_dohost('senhas','http://'+(localStorage['sys_ipservidor']).replace("http://", "")+'/cardapiovirtualnovo/index.php?tabela=senhas');
+					}
+					
+					decisao = confirm(" Deseja Importar imagens ? ");
+					//console.log(decisao);
+					
+					if (decisao){
+						
+						if ( ( $('#ipsrvrx').length > 0 ) && ( localStorage['sys_ipservidor'].length > 0 ) ) {
+							localStorage['sys_ipservidor'] = 'http://'+$('#ipsrvrx').val();
+							exsql(JSON.parse('{"comandos" : ["DROP TABLE IF EXISTS SETTINGS" , "CREATE TABLE IF NOT EXISTS SETTINGS (id unique, ipserver)","INSERT INTO SETTINGS (id, ipserver) VALUES ( NULL ,\''+(localStorage['sys_ipservidor']).replace("http://", "")+'\' )"]}'));
+
+						//	console.log(localStorage['sys_ipservidor']+'---------------------');
+						//	alert('Importando');
+							
+							var lista = new Array();
+							
+							var data = JSON.parse(localStorage['produtos']);
+							$.each(data,function(index, value){
+								var nome = value.NOME;
+								nome = nome.replace("/", "-");
+								nome = nome.replace(".", "");
+								nome = nome.replace("+", ":");
+								nome = nome.replace(" ","");
+								nome = nome.replace(/ /g,'');
+							//	alert('produtos'+nome);
+								lista.push(localStorage['sys_ipservidor']+'/'+localStorage['sys_nomeappweb']+'/imagens/'+nome+'.png');
+							});
+							
+							var data2 = JSON.parse(localStorage['categorias']);
+							$.each(data2,function(index, value){
+								var nome = value.NOME;
+								nome = nome.replace("/", "-");
+								nome = nome.replace(".", "");
+								nome = nome.replace("+", ":");
+								nome = nome.replace(" ","");
+								nome = nome.replace(/ /g,'');
+								//alert('categoria'+nome);
+								lista.push(localStorage['sys_ipservidor']+'/'+localStorage['sys_nomeappweb']+'/imagens/'+nome+'.png');			
+							});
+							
+							downloadFile(0,(localStorage['sys_ipservidor']+'/'+localStorage['sys_nomeappweb']+'/logo.jpg'),function (retorno){
+								
+							
+							});	
+							
+							downloadFile(1,(localStorage['sys_ipservidor']+'/'+localStorage['sys_nomeappweb']+'/imagens/imagens.zip'),function (retorno){
+								
+								//alert('x');
+								unzipexclude('imagens.zip',0);
+								
+							});
+							
+								
+							
+							//console.log(lista);
+							//download_lista_imagens(lista);
+							
+						}else {
+							alert('defina o ip do servidor');
+						}
+					
+					}
+				}else{
+					alert('defina o ip do servidor');
+				}		
+	}
+    
+    
+	
+	
+	function logar_sistema(){
+		var formulario = $("#form_login").serializeArray();
+		localStorage['sys_ipservidor'] = $('#ipsrvrx').val();
+		exsql(JSON.parse('{"comandos" : ["DROP TABLE IF EXISTS SETTINGS" , "CREATE TABLE IF NOT EXISTS SETTINGS (id unique, ipserver)","INSERT INTO SETTINGS (id, ipserver) VALUES ( NULL ,\''+(localStorage['sys_ipservidor']).replace("http://", "")+'\' )"]}'));
+
+		
+		if(formulario[0].value != ""){
+			cdb('senhas','"COD"', formulario[0].value ,function(array_retorno){
+						//console.log(array_retorno);
+						//console.log(formulario[1].value);
+						if(array_retorno[0].SENHA == formulario[1].value){
+
+							console.log('certo');
+							localStorage['garcom_id'] = array_retorno[0].COD;
+							$.mobile.changePage('#home', 'pop');				
+
+						}else{
+							alert('senha errada');
+						}
+			});	
+		}
+	}
+	
+	
+	
+	
+	   
+	function submeter_varios_pedidos(){
+		
+		$.ajax({
+				  url: 'http://'+localStorage['sys_ipservidor']+'/cardapiovirtualnovo/index.php',
+				  type: "POST",
+				  data: $("#pedidos-carrinho").serialize()+'&garcom='+localStorage['garcom_id'],
+				   success: function(response){
+				   if(response == "1" || response == 1){
+						alert('Pedido Enviado Com Sucesso');
+						localStorage.removeItem('Produtoscarrinho');
+						localStorage['Produtoscarrinho'] == '';
+						history.back();
+					}
+				   }
+		});
+	
+	}
+    
+    
+
+	  function gerar_html_carrinho(){
+			var texto = '';	
+			//JSON.parse(localStorage['Produtos'])[5]['id'] + 1 );
+			//alert('aqui');
+			if(!(localStorage.getItem("Produtos") === null)){
+				//$.mobile.showPageLoadingMsg();
+
+				$('#conteudo_lista_pedidos_pai').empty();
+				//alert('x');
+				dt = JSON.parse(localStorage['Produtos']);
+				
+				//alert('xx');
+				//alert(dt);
+					$.each(dt, function(i, item) {
+					//	alert(i);
+					//	alert(item.id);
+						texto += '<li data-role="list-divider"></li><br>';
+						texto += '<li> ';
+						texto += ' <input  type="hidden"  name="" id="Produtos_id_'+item.id+'__"  />';
+						texto += ' <input  type="hidden"  name="Produtos['+i+'][id]" value="'+item.id+'" />';
+						texto += ' <input type="hidden" name="Produtos['+i+'][nome]" value="'+item.nome+'"  />Nome: '+item.nome+'<br>';
+						texto += ' <input type="hidden" name="Produtos['+i+'][preco]" value="'+item.preco+'"  />Pre�o: '+item.preco+'<br>';
+						texto += ' <input type="hidden" name="Produtos['+i+'][complementos]" value="'+item.complementos_id+'"  />Complementos: '+item.complementos+' <br>';
+						texto += ' <input type="hidden" name="Produtos['+i+'][quantidade]" id="Produtos_qtd_'+i+'" value="'+item.qtd+'"  />Quantidade: <input data-theme="c" data-inline="true" data-mini="true" type="button" name="increase" value="+" onclick=alterarQtd("Produtos_qtd_'+i+'","adic"); /><label id="Produtos_qtd_'+i+'_cnt" >'+item.qtd+'</label><input data-inline="true" data-theme="c" type="button" data-mini="true" name="decrease" value="-" onclick=alterarQtd("Produtos_qtd_'+i+'","sub"); /> <br>';
+						texto += ' <br><br> <div align="center">Comanda</div><br><select name="Produtos['+i+'][comanda]"  data-theme="c" data-native-menu="false" >'+localStorage['opcoes_comanda']+'</select>';
+						texto += ' <br><br><br><input data-theme="c" data-inline="true" data-mini="true"  type="button" value="X Remover" onclick="removerElementoLista($(this),'+item.id+')"> </li><br>';
+						
+					});
+				
+					$.mobile.changePage('#lista_de_pedidos_add', 'pop');				
+			}else{
+				alert('N�o h� produtos no carrinho!');
+			}
+			
+		}
+	  
+
+		function removerElementoLista(elemento,id){
+			
+			decisao = confirm("Tem certeza que deseja deletar este item ?");
+			if (decisao){
+				$.each(JSON.parse(localStorage['Produtoscarrinho']), function(i, item) {
+					if(JSON.parse(localStorage['Produtoscarrinho'])[i].id == id){
+						if(JSON.parse(localStorage['Produtoscarrinho']).length == 1){
+							
+							localStorage['Produtoscarrinho'] = '';
+							elemento.parent().parent().fadeOut().remove();
+							
+						}else{
+							json = JSON.parse(localStorage['Produtoscarrinho']);
+							json[i] = '';
+							localStorage['Produtoscarrinho'] = JSON.stringify(json).replace(',""',"").replace('["",',"[");	
+							//localStorage['Produtos'] = JSON.stringify(json).replace(',""',"");
+							elemento.parent().parent().fadeOut().remove();
+							if(localStorage['Produtoscarrinho'] == ''){
+								history.back();
+							}
+						}
+							
+					}
+					
+				
+				});
+			} else {
+				
+			}
+		}
+		
+
+		function alterarQtd(elemqtd,operacao) {
+//			alert(btnElement.name);
+			switch (operacao) {
+				case "adic":
+					$('#'+elemqtd).val(parseInt($('#'+elemqtd).val())+1);
+					$('#'+elemqtd+'_cnt').html($('#'+elemqtd).val());			
+					break
+				case "sub":
+					if(parseInt($('#'+elemqtd).val()) > 1){
+						$('#'+elemqtd).val(parseInt($('#'+elemqtd).val())-1);
+						$('#'+elemqtd+'_cnt').html($('#'+elemqtd).val());			
+					}else{
+						alert('O valor n�o pode ser menor que 1');
+					}
+					break
+				default:
+					alert("opera��o ilegal")
+			}	
+			
+		}
+	  
+	  
+  function abrir_produto(id_produto){
+		$.mobile.showPageLoadingMsg();
+		  
+
+		$.ajax({
+					  url:  "http://10.0.2.2/cardapiovirtual/index.php/produto/"+id_produto,
+					  type: "GET",            
+					 // data: 'Chamadasgarcom[id_tipo_pedido]='+tipo+'&Chamadasgarcom[mesa]='+mesa,
+					  success: function(data){
+						//alert(data);
+						var content = $( data ).find( '#Gallery' );
+						$( "#Gallery" ).empty().append( content ).trigger('create');
+						
+						$("#Gallery").find('a').each(function (i){
+							$(this).attr('href','http://10.0.2.2'+$(this).attr('href'));
+							$(this).find('img').attr('src','http://10.0.2.2'+$(this).find('img').attr('src'));
+						});
+						
+						var content = $( data ).find( '#preco' );
+						$( "#preco_" ).empty().append( content ).trigger('create');
+						
+						var content = $( data ).find( '#descricao' );
+						$( "#descricao_" ).empty().append( content ).trigger('create');
+						
+						var content = $( data ).find( '#adicionais' );
+						$( "#adicionais_" ).empty().append( content ).trigger('create');
+						
+						var content = $( data ).find( '#select_b' );
+						
+						if(content.html() != null){
+						$("#select_bl").empty().append(content.html());					
+						}else{
+						$("#mesa_").fadeOut().remove();
+						}
+						
+						var content = $( data ).find( '#uuid' );
+						$( "#id_aparelho_" ).empty().append( content );
+						
+						var content = $( data ).find( '#id_produto' );
+						$( "#id_produto_" ).empty().append( content );
+						
+						var content = $( data ).find( '#produto_preco' );
+						$( "#total_" ).empty().append( content );
+						
+															
+						
+						(function(window, $, PhotoSwipe){
+							$(document).ready(function(){
+							var options = {};
+								$("#Gallery a").photoSwipe(options);
+							});
+						}(window, window.jQuery, window.Code.PhotoSwipe));
+									
+						$.mobile.changePage('#pagina_produto', 'pop', true, true);
+						$.mobile.hidePageLoadingMsg();
+						
+					  }
+		});
+	
+  }
+
+
+  function addProduto(){
+  
+	    var arr = '';
+		var arr2 = '';
+		var arr3p = 0.00;
+		var data = [];
+		
+		if ( localStorage.getItem("Produtoscarrinho") === null || localStorage['Produtoscarrinho'] == '' ){
+			var produtosObj = [];
+		}else{
+			var produtos = localStorage['Produtoscarrinho'];
+			var produtosObj = JSON.parse(produtos);
+		}
+		   $('.complementos_c:checked').each(function(){
+		   arr += $(this).attr('nome')+',';
+		   arr2 += $(this).val()+',';
+		   arr3p += parseFloat($(this).attr('preco'));
+      });
+		
+		//data['nome'] = $('#nome_produto_add').text();//+',preco:'+$('#preco_produto_add').text()+',complementos:'+arr+',';
+		//data['preco'] = $('#preco_produto_add').text();
+		//data['complementos'] = arr;
+		if( localStorage.getItem("Produtoscarrinho") === null || localStorage['Produtoscarrinho'] == '' ){
+			//$('#preco_produto_add input').val()
+			if( $('#id_produto_add').text() ==  '1' ){
+				produtosObj.push( {'n' : '0' , 'qtd': 1  ,'id' : $('#id_produto_add').text() , 'nome': $('#nome_produto_add').text() , 'preco': $('#preco_produto_add input').val() , 'complementos' : arr , 'complementos_id' : arr2 , 'complementos_preco' :  arr3p } );		
+			}else{
+				produtosObj.push( {'n' : '0' , 'qtd': 1  ,'id' : $('#id_produto_add').text() , 'nome': $('#nome_produto_add').text() , 'preco': $('#preco_produto_add').text() , 'complementos' : arr  , 'complementos_id' : arr2  , 'complementos_preco' :  arr3p } );
+			}
+			localStorage['Produtoscarrinho'] = JSON.stringify(produtosObj);
+		
+		}else{
+			var lid = JSON.parse(localStorage['Produtoscarrinho']).length;
+			lid = parseInt(JSON.parse(localStorage['Produtoscarrinho'])[lid-1]['n']) + 1;
+			var flag = 0;
+			var jsonprod = '';
+			var pdt = JSON.parse(localStorage['Produtoscarrinho']);
+			$.each(pdt, function(i, item) {
+					//alert(item.id);
+				if( item.id == $('#id_produto_add').text() && item.id != 1 ){
+				//	alert('entrou');
+					
+					jsonprod = JSON.parse(localStorage['Produtoscarrinho']);
+					
+					if(JSON.parse(localStorage['Produtoscarrinho'])[i].complementos_id == arr2  ){
+					
+						jsonprod[i].qtd += 1;
+						localStorage['Produtoscarrinho'] = JSON.stringify(jsonprod);
+						flag = 1;
+					}
+		
+				}	
+		
+			});
+		
+			if(flag != 1){
+			if( $('#id_produto_add').text() ==  '1' ){
+			produtosObj.push( {'n' : '0' , 'qtd': 1  ,'id' : $('#id_produto_add').text() , 'nome': $('#nome_produto_add').text() , 'preco': $('#preco_produto_add input').val() , 'complementos' : arr , 'complementos_id' : arr2  , 'complementos_preco' :  arr3p } );		
+			}else{
+			produtosObj.push( {'n' : lid, 'qtd': 1 ,'id' : $('#id_produto_add').text() , 'nome': $('#nome_produto_add').text() , 'preco': $('#preco_produto_add').text() , 'complementos' : arr , 'complementos_id' : arr2  , 'complementos_preco' :  arr3p } );
+			}
+			localStorage['Produtoscarrinho'] = JSON.stringify(produtosObj);			
+			}
+			
+		}
+		
+		//alert( localStorage['Produtos'] );	
+		
+		data = '';
+ 		//alert('x');
+	//	alert(localStorage['Produtos']);
+      //  localStorage['Produtos'] ='';
+//		history.back();
+		alert('Produto adicionado ao carrinho');
+		$.mobile.changePage('#home', 'pop', true, true);
+
+  }
+  
+  function opcoes_add_produto(id){
+
+			cdb('produtos','"COD"',id,function(array_retorno){
+					array_retorno = array_retorno[0];
+					//console.log(array_retorno);
+					$('#id_produto_add').text(array_retorno.COD)
+					$('#nome_produto_add').text(array_retorno.NOME);
+					if(array_retorno.COD == 1){
+						$('#preco_produto_add').html('<input type="text" name="Pedido[preco]" value="" placeholder="R$"/> </h3>').trigger('create');
+					}else{
+						$('#preco_produto_add').text(array_retorno.PRECO);
+					}
+					if(array_retorno.DESCRICAO != 'null')
+					{
+					$('#descricao_produto_add').text(array_retorno.DESCRICAO);
+					}
+					$('#complementos_produto_add').empty();
+					
+					
+					cdb('produtoscomplementos','"CODPROD"','"'+id+'"',function(array_retorno2){
+						$.each(array_retorno2, function(index, complemento) {
+							cdb('produtos','"COD"', complemento.CODCOMPL ,function(array_retorno3){
+								$.each(array_retorno3, function(index, complemento2) {
+									if(complemento2.NOME != 'null'){
+										var preco = complemento2.PRECO;
+										if(complemento.PRECO == 'null'){
+											var preco = '0.00';
+										}
+										$('#complementos_produto_add').append('<label><input class="complementos_c" type="checkbox" name="complementos" preco="'+preco+'" nome="'+complemento2.NOME+'" value="'+complemento2.COD+'" /> '+complemento2.NOME+' R$: '+preco+' </label>').trigger('create');
+									}
+								});
+							});
+						});	
+					});
+					//$.each(data.complementos, function(index, complemento) {
+
+					//	$('#complementos_produto_add').append('<label><input class="complementos_c" type="checkbox" name="complementos" nome="'+complemento.nome+'" value="'+complemento.id+'" /> '+complemento.nome+' R$: '+complemento.preco+' </label>').trigger('create');
+
+					//});
+
+					$.mobile.changePage('#pagia_add_produto','pop',true,true);
+
+			});
+	  }
+
+  function fazer_pedido(){
+	
+	$.ajax({
+				  url:  "http://"+(localStorage['sys_ipservidor']).replace("http://", "")+"/cardapiovirtual/index.php/pedido/create",
+				  type: "POST",            
+				  data: $("#form_produto").serialize(),
+				  success: function(data){
+					
+					var content = $( data ).find( '#lista_pedido' );
+					$( "#lista_pedido_realizado" ).empty().append( content ) ;
+					$( "#lista_pedido_realizado" ).find("#botao_cancelar").remove();
+					$("#voltar_inicio").trigger('create');
+					
+					
+				//	var content = $( data ).find( '#produto_preco' );
+				//	$( "#lista_pedido_" ).empty().append( content ).trigger('create');
+					
+					
+					$.mobile.changePage('#pagina_retorno_pedido', 'pop', true, true);
+
+
+				  }
+	
+	});
+	
+			
+
+  }
+  
+  </script>
+</head>
+<body>
+
+
+
+
+
+
+<div data-role="page" data-backbtn="false"   id="home2">
+<div data-theme="b" data-role="header">
+        <h3>
+            ITFood
+        </h3>
+		<a onclick="baixar_tudo();" data-role="button" data-theme="b" data-icon="gear"  class="ui-btn-right">
+            Atualizar Dados
+        </a>
+    </div>
+<div data-role="content" data-backbtn="false"  data-prefetch>
+
+	<div>
+		<h4 id="header_progress"> Progresso: </h4>
+		<div id="progressbar"></div>
+	</div>
+	<h3>Login: </h3>
+	<form id="form_login" action="">
+
+			<div data-role="fieldcontain">
+                <label for="selectmenu1">
+                    Gar�om:
+                </label>
+                <select id="select_garcom" name="login" data-theme="c">
+                    <option value="">
+                        Option
+                    </option>
+                </select>
+            </div>
+
+            <div data-role="fieldcontain">
+                <label for="senha">
+                    Senha
+                </label>
+				<input type="password" name="senha"  value="" />
+            </div>
+			
+			<div data-role="fieldcontain">
+                <label for="ipsrvr">
+                    ip servidor:
+                </label>
+				<input type="text" name="ipsrvr" id="ipsrvrx"  value="" />
+            </div>
+			
+			<input type="button"  onclick="logar_sistema()" value="Login">
+    </form>
+	
+	
+	
+
+</div>
+
+ <div data-theme="b" data-role="footer" data-position="fixed">
+        <h3>
+            ITFood
+        </h3>
+    </div>
+</div>
+
+
+<div data-role="page" data-backbtn="false"   id="home">
+<div data-role="header" data-backbtn="false" id="cbc"></div>
+<div data-role="content" data-backbtn="false"  data-prefetch>
+
+
+
+<div style="height:40%; width:100%; position: relative; background-color: #fbfbfb; border: 1px solid #b8b8b8;">
+	<img src="" id="logo_empresa" alt="image" style="height:100%; width:100%">
+ </div>
+
+
+<div data-role="collapsible" id="lista_cardapio" data-content-theme="b">
+
+</div>
+
+<div data-role="collapsible" data-rel="back" id="chamar_garcom_pai" data-content-theme="b">
+
+</div>
+
+<div data-role="collapsible" data-rel="back" id="editar_comandas_das_mesas" data-content-theme="b">
+
+</div>
+
+
+<a id="href3" class="ui-btn ui-shadow ui-btn-corner-all ui-btn-up-c" data-content-theme="b"  data-role="button" href="#lista_de_pedidos" data-transition="pop"><span class="ui-btn-inner ui-btn-corner-all"><span class="ui-btn-text">Produtos</span></span></a>
+
+<a id="href3" class="ui-btn ui-shadow ui-btn-corner-all ui-btn-up-c" data-content-theme="b"  data-role="button" href="#lista_de_pedidos_add" data-transition="pop"><span class="ui-btn-inner ui-btn-corner-all"><span class="ui-btn-text">Carrinho</span></span></a>
+
+</div>
+</div>
+
+
+
+
+<div data-role="page" class="pagina_produto" data-add-back-btn="true" data-back-btn-text="Voltar" id="pagina_produto">
+    <div data-role="header">
+        <h1>
+				Produto
+		</h1>
+    </div><!-- /header -->
+    <div data-role="content">
+	
+		<div style="padding-left:0px;">
+			<ul id="Gallery" class="gallery" style="padding-left:0px;" >
+			<a ></a>
+			</ul>
+		</div>
+	
+	<form id="form_produto" align="center" >
+
+		<br/>
+		
+		<div id="preco_"></div>
+		<div id="descricao_"></div>
+		<div id="adicionais_"></div>
+		
+		
+		<div id="mesa_"  data-role="fieldcontain">
+			<div data-role="fieldcontain" >
+			<label for="select_bl" class="select">Mesa do Pedido</label>
+			<select  name="Pedido[garcon]" id="select_bl" data-native-menu="false">
+			</select>	
+			</div>
+		</div>
+			
+		
+		<div  data-role="fieldcontain">
+		<label for="num_comanda">Numero da Comanda:</label>
+		<input type="text" name="Pedido[comanda]" id="num_comanda" value=""  />
+		</div>	
+
+		<div data-role="fieldcontain">
+		<label for="select-choice-a" class="select">Quantidade</label>
+			<select name="Pedido[quantidade]" id="select-choice-a" data-native-menu="false">
+						<option>Quantidade</option>
+						<option name="" value="1">1</option>
+						<option name="" value="2">2</option>
+						<option name="" value="3">3</option>
+						<option name="" value="4">4</option>
+						<option name="" value="5">5</option>
+     		</select>
+		
+		</div>
+		
+		<div data-role="fieldcontain">
+		<label for="textarea_pedido">Observa��es:</label>
+		<textarea cols="40" rows="8" name="Pedido[observacao]" id="textarea_pedido" data-theme="d"></textarea>
+		</div>
+	
+		<!--	<input id="id_produto" type="hidden" name="Pedido[total]" value="<? //echo $model->preco; ?>">  -->
+
+		
+		<div id="id_aparelho_">
+		</div>
+		<div id="id_produto_">
+		</div>
+		<div id="total_">
+		</div>	
+	
+		<input type="hidden" value="" id="hidden_obs"/>
+		<br />
+		<fieldset class="ui-grid-a">
+		<div class="ui-block-b"><a href="#" data-role="button"  id="btn_submt" onclick="fazer_pedido()" >Fazer Pedido.</a></div>
+		<div class="ui-block-b"><a href="#home" data-role="button" data-theme="a">Cancelar</a></div>
+		</fieldset>
+		
+		</form>
+    </div><!-- /content -->
+    <div data-role="footer">
+        <h4>
+            --------------------
+        </h4>
+    </div><!-- /footer -->
+</div>
+
+<div data-role="page" data-add-back-btn="true" data-back-btn-text="Voltar" id="pagina_retorno_pedido">
+    <div data-role="header">
+        <h1>
+				Pedido Realizado
+		</h1>
+    </div><!-- /header -->
+    <div data-role="content" data-prefetch>
+		
+		<h3>Pedido:</h3>
+		<div id="lista_pedido_realizado">
+		<ul data-role="listview" id="lista_pedido_">
+		
+	
+		</ul>
+		</div>
+    </div><!-- /content -->
+    <div data-role="footer">
+        <h4>
+            --------------------
+        </h4>
+    </div><!-- /footer -->
+</div>
+
+<div data-role="page" data-add-back-btn="true" data-back-btn-text="Voltar"  class="dialog_html" id="pedirconta">
+    <div data-role="header">
+        <h1>
+			Pedir a Conta
+		</h1>
+    </div><!-- /header -->
+    <div data-role="content">
+        
+		<div id="listas_pedir_conta_">
+		
+		
+		</div>
+		
+		<div id="botao_pedir_conta_">
+		
+		
+		</div>
+		
+    </div><!-- /content -->
+    <div data-role="footer">
+        <h4>
+            --------------------
+        </h4>
+    </div><!-- /footer -->
+</div>
+
+<div data-role="page" data-add-back-btn="true" data-back-btn-text="Voltar" class="dialog_html" id="solicitargarc">
+    <div data-role="header">
+        <h1>
+			Solicitar Gar�om
+		</h1>
+    </div><!-- /header -->
+    <div data-role="content">
+	
+	<div id="lista_solicitar_garc_">
+	
+	</div>
+	<div id="botao_solicitar_garcom_">
+	</div>	
+    </div><!-- /content -->
+    <div data-role="footer">
+        <h4>
+            --------------------
+        </h4>
+    </div><!-- /footer -->
+</div>
+
+<div data-role="page" data-add-back-btn="true" data-back-btn-text="Voltar" class="pagina_comanda_mesa" id="pagina_comanda_mesa">
+    <div data-role="header">
+		<h1>Comandas Por Mesa</h1>
+	</div><!-- /header -->
+    <div data-role="content">
+	<div id="headder_cmmesa">
+	</div>
+	<div id="dados_mesa_comanda_" data-role="content" data-prefetch>
+		<ul data-role="listview" id="list_comanda_mesa_">
+	
+	
+		</ul>
+	</div>
+	
+    </div><!-- /content -->
+    <div data-role="footer">
+        <h4>
+            --------------------
+        </h4>
+    </div><!-- /footer -->
+</div>
+
+
+<div data-role="dialog" data-add-back-btn="true" data-back-btn-text="Voltar" class="pagina_sobre_pedidos" id="pagina_sobre_pedidos">
+    <div data-role="header" id="">
+		<div id="h1_topo_sp"></div>
+	</div><!-- /header -->
+    <div data-role="content" id="conteudo_pagina_sobre_pedidos">
+		
+	
+	
+    </div><!-- /content -->
+    <div data-role="footer">
+        <h4>
+            --------------------
+        </h4>
+    </div><!-- /footer -->
+</div>
+
+<div data-role="dialog" data-add-back-btn="true" data-back-btn-text="Voltar" class="pagina_sobre_pedidos" id="pagina_sobre_pedidos">
+    <div data-role="header" id="">
+		<div id="h1_topo_sp"></div>
+	</div><!-- /header -->
+    <div data-role="content" id="conteudo_pagina_sobre_pedidos">
+		
+	
+	
+    </div><!-- /content -->
+    <div data-role="footer">
+        <h4>
+            --------------------
+        </h4>
+    </div><!-- /footer -->
+</div>
+
+<div data-role="page" data-add-back-btn="true" data-back-btn-text="Voltar" id="lista_de_pedidos" tabindex="0" class="ui-page" >
+
+	<div data-role="header" class="ui-header ui-bar-b" role="banner">
+		<h1 class="ui-title"  role="heading" aria-level="1">Card�pio</h1>
+	</div><!-- /header -->
+
+	<div data-role="content" data-theme="a" class="ui-content ui-body-b" role="main">	
+		<div class="padd">	
+			<ul id="pedido_rapido_conteudo" data-role="listview" data-filter-placeholder="Filtro"  data-filter="true">
+			
+				
+
+			</ul>
+		</div>
+	</div><!-- /content -->
+	
+	<div data-role="footer" class="ui-footer">
+		<h4 class="ui-title" role="heading" aria-level="1"></h4>
+	</div><!-- /footer -->
+</div>
+
+<div data-role="page" data-add-back-btn="true" data-back-btn-text="Voltar" id="pagia_add_produto" tabindex="0" class="ui-page" >
+
+	<div data-role="header" class="ui-header ui-bar-b" role="banner">
+		<h1 class="ui-title" role="heading" aria-level="1">Adicionar produto na lista de pedidos</h1>
+			<a href="#home" data-icon="home">Inicio</a>
+	</div><!-- /header -->
+
+	<div data-role="content" data-theme="a" class="ui-content ui-body-b" role="main">	
+			<h2 id="id_produto_add"></h2>
+			<h2>Produto:</h2><label id="nome_produto_add" > </label></br>
+			<h2>Pre�o:</h2><label id="preco_produto_add" > </label></br>
+			<h2>Descri��o:</h2><label id="descricao_produto_add" > </label></br>
+			<h2>Complementos:</h2>
+			<div id = "complementos_produto_add">			
+			</div>
+	</div><!-- /content -->
+
+		<a class="ui-btn ui-shadow ui-btn-corner-all ui-btn-up-c"  onclick="addProduto()" data-role="button" href="#"><span class="ui-btn-inner ui-btn-corner-all"><span class="ui-btn-text">Adicionar ao carrinho</span></span></a>
+
+	<div data-role="footer" class="ui-footer">
+		<h4 class="ui-title" role="heading" aria-level="1"></h4>
+	</div><!-- /footer -->
+</div>
+
+
+
+<div data-role="page" data-add-back-btn="true" data-back-btn-text="Voltar" id="pagia_listar_pedidos"  class="ui-page" >
+
+	<div data-role="header" class="ui-header ui-bar-b" role="banner">
+		<h1 class="ui-title" role="heading" aria-level="1">Fechar pedido</h1>
+	</div><!-- /header -->
+
+	<div data-role="content" data-theme="a" class="ui-content ui-body-a" role="main">	
+		
+	</div><!-- /content -->
+
+		<a class="ui-btn ui-shadow ui-btn-corner-all ui-btn-up-c"  onclick="addProduto()" data-role="button" href="#"><span class="ui-btn-inner ui-btn-corner-all"><span class="ui-btn-text">Adicionar ao carrinho</span></span></a>
+
+	<div data-role="footer" class="ui-footer">
+		<h4 class="ui-title" role="heading" aria-level="1"></h4>
+	</div><!-- /footer -->
+	
+</div>
+
+<div data-role="page" data-add-back-btn="true" data-back-btn-text="Voltar" id="lista_de_pedidos_add"  class="ui-page" >
+		
+	<div data-role="header" class="ui-header ui-bar-b" role="banner">
+		<h1 class="ui-title" role="heading" aria-level="1">Card�pio</h1>
+
+		
+	</div><!-- /header -->
+		<form id='pedidos-carrinho' >
+		<div data-role="content" data-theme="a" id="conteudo_lista_pedidos_pai" >	
+				
+				<ul id="conteudo_lista_pedidos_add" data-role="listview">
+					
+				</ul>
+				
+		</div><!-- /content -->
+		
+		<script>
+		
+				
+		</script>
+	<!--	
+		<label for="select-lista-de-pedidos-mesa"  align="center">Numero Da Mesa:</label>
+		<select id="select-lista-de-pedidos-mesa"  name="mesa_lista"  data-native-menu="false">
+		</select>
+
+ -->
+		<br>
+		<br>
+		
+		
+		<fieldset data-role="controlgroup" data-type="horizontal">
+			<legend>TIPO DE PEDIDO</legend>
+			<input type="radio"  name="radio_opcao"  id="radiomesa" value="mesa">
+			<label for="radiomesa">Mesa</label>
+			<input type="radio"  name="radio_opcao"  id="radiocomanda" value="comanda">
+			<label for="radiocomanda">Comanda</label>
+		</fieldset>
+		
+		
+		<div id="conteudo_pagamento" >
+		</div>
+		
+		<!-- <input type="button"  value="Fazer Pedidos" data-theme="b" onclick="submeter_varios_pedidos()"  /> -->
+		</form>
+	<div data-role="footer" class="ui-footer-b ui-bar-b">
+		<h4 class="ui-title" role="heading" aria-level="1"></h4>
+	</div><!-- /footer -->
+</div>
+
+
+</body>
+</html>
